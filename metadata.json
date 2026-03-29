@@ -1,0 +1,5 @@
+{
+  "name": "World Archaeos & App Blueprint Generator",
+  "description": "A comprehensive digital suite featuring a Virtual Archaeologist AI Assistant, Satellite Image Analysis for hidden structures, and a powerful App Blueprint Generator that creates detailed architectural, technical, and market strategies for any application idea.",
+  "requestFramePermissions": ["geolocation", "camera"]
+}

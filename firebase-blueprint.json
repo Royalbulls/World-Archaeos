@@ -1,0 +1,128 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique user ID from Firebase Auth" },
+        "displayName": { "type": "string", "description": "User's display name" },
+        "email": { "type": "string", "format": "email", "description": "User's email address" },
+        "photoURL": { "type": "string", "description": "User's profile picture URL" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "User's role in the system" },
+        "lastLogin": { "type": "string", "format": "date-time", "description": "Last login timestamp" },
+        "preferences": { "type": "object", "description": "User-specific settings" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Discovery": {
+      "title": "Discovery",
+      "description": "An archaeological discovery made by a user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["Artifact", "Structure", "City", "Anomaly"] },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "imageUrl": { "type": "string" },
+        "accessibility": { "type": "string", "enum": ["Easy", "Moderate", "Difficult"] }
+      },
+      "required": ["userId", "title", "lat", "lng"]
+    },
+    "CouncilSession": {
+      "title": "CouncilSession",
+      "description": "A session of the Soul Council",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "topic": { "type": "string" },
+        "messages": { "type": "array", "items": { "type": "object" } },
+        "proposal": { "type": "object" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "topic"]
+    },
+    "CustomTool": {
+      "title": "CustomTool",
+      "description": "An evolved tool created by the council",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "iconName": { "type": "string" },
+        "config": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "id"]
+    },
+    "KathaSeries": {
+      "title": "KathaSeries",
+      "description": "A spiritual spiritual katha series",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "topic": { "type": "string" },
+        "episodeCount": { "type": "number", "description": "Number of episodes in the series" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title"]
+    },
+    "KathaEpisode": {
+      "title": "KathaEpisode",
+      "description": "An episode of a katha series",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "seriesId": { "type": "string" },
+        "episodeNumber": { "type": "number" },
+        "title": { "type": "string" },
+        "topic": { "type": "string" },
+        "text": { "type": "string" },
+        "summary": { "type": "string" },
+        "thumbnailPrompt": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "revenueTip": { "type": "string" },
+        "socialKit": { "type": "object" },
+        "audioBase64": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["seriesId", "title", "episodeNumber"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/discoveries/{discoveryId}": {
+      "schema": "Discovery",
+      "description": "Public archaeological discoveries"
+    },
+    "/council_sessions/{sessionId}": {
+      "schema": "CouncilSession",
+      "description": "Private council sessions for users"
+    },
+    "/custom_tools/{toolId}": {
+      "schema": "CustomTool",
+      "description": "User-specific evolved tools"
+    },
+    "/katha_series/{seriesId}": {
+      "schema": "KathaSeries",
+      "description": "Spiritual katha series"
+    },
+    "/katha_series/{seriesId}/episodes/{episodeId}": {
+      "schema": "KathaEpisode",
+      "description": "Episodes within a katha series"
+    }
+  }
+}
