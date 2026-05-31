@@ -24,7 +24,6 @@ import {
   User
 } from 'lucide-react';
 import { getGeminiModel, withRetry, Type } from '@/lib/gemini';
-import { getBase64Image } from '@/lib/utils';
 import Image from 'next/image';
 import Markdown from 'react-markdown';
 import { motion, AnimatePresence } from 'motion/react';
@@ -187,15 +186,14 @@ export default function AIInfluencerStudio({ globalLanguage, profile }: { global
           const imageParts: any[] = [{ text: `Professional influencer portrait, ${style} style, ${data.visualPrompt}. High-end lighting, cinematic composition, 4k, photorealistic, sharp focus. The influencer MUST look exactly like the person in the provided reference photo, but styled as a ${data.niche} influencer.` }];
           
           if (profile?.profilePhoto) {
-            const base64Data = await getBase64Image(profile.profilePhoto);
-            if (base64Data) {
-              imageParts.push({
-                inlineData: {
-                  mimeType: base64Data.mimeType,
-                  data: base64Data.data
-                }
-              });
-            }
+            const mimeMatch = profile.profilePhoto.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+            const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+            imageParts.push({
+              inlineData: {
+                mimeType: mimeType,
+                data: profile.profilePhoto.split(',')[1] || profile.profilePhoto
+              }
+            });
           }
 
           const imgResponse = await withRetry(() => imageAi.models.generateContent({

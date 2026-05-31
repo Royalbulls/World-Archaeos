@@ -61,10 +61,12 @@ export default function LanguageTranslator() {
       const contents: any = { parts: [{ text: prompt }] };
       
       if (image) {
+        const mimeMatch = image.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+        const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
         contents.parts.push({
           inlineData: {
-            mimeType: "image/png",
-            data: image.split(',')[1]
+            mimeType: mimeType,
+            data: image.split(',')[1] || image
           }
         });
       }

@@ -20,8 +20,8 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'World Archaeos | Ancient Civilization Explorer',
-  description: 'Digital archaeological suite for exploring ancient mysteries and civilizations.',
+  title: 'WorldArchaeos | Ancient Civilization Suite',
+  description: 'Digital archaeological suite for exploring, documenting, and publishing ancient mysteries.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

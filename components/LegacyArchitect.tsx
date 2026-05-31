@@ -9,9 +9,9 @@ import {
   Download, 
   Zap, 
   Globe, 
-  Video, 
-  Camera, 
-  MessageCircle, 
+  Youtube, 
+  Instagram, 
+  Twitter, 
   Mail,
   ChevronRight,
   Sparkles,
@@ -41,7 +41,7 @@ interface LegacyPlan {
 const NICHES = [
   { id: 'creative', label: 'Creative/Artistic', multiplier: 1.5, icon: Sparkles },
   { id: 'tech', label: 'Tech/Innovation', multiplier: 2.0, icon: Zap },
-  { id: 'lifestyle', label: 'Lifestyle/Influencer', multiplier: 1.8, icon: Camera },
+  { id: 'lifestyle', label: 'Lifestyle/Influencer', multiplier: 1.8, icon: Instagram },
   { id: 'educational', label: 'Educational/Scholar', multiplier: 1.2, icon: BookOpen }
 ];
 
@@ -329,9 +329,9 @@ export default function LegacyArchitect() {
                         <div key={i} className="p-4 bg-gray-50 rounded-2xl flex items-center justify-between group hover:bg-indigo-50 transition-all">
                           <span className="font-mono text-sm font-bold text-gray-600 group-hover:text-indigo-600">{handle}</span>
                           <div className="flex gap-2">
-                            <Camera className="w-3 h-3 opacity-20" />
-                            <Video className="w-3 h-3 opacity-20" />
-                            <MessageCircle className="w-3 h-3 opacity-20" />
+                            <Instagram className="w-3 h-3 opacity-20" />
+                            <Youtube className="w-3 h-3 opacity-20" />
+                            <Twitter className="w-3 h-3 opacity-20" />
                           </div>
                         </div>
                       ))}

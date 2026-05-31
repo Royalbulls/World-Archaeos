@@ -1,116 +1,66 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { 
-  Loader2, 
-  FileText, 
-  TrendingUp, 
-  Copy, 
-  Check, 
-  LayoutTemplate, 
-  Cpu, 
-  DollarSign, 
-  Target, 
-  Zap,
-  ChevronRight,
-  Sparkles,
-  Download,
-  Share2
-} from 'lucide-react';
-import { getGeminiClient, withRetry } from '@/lib/gemini';
+import React, { useState } from 'react';
+import { Loader2, FileText, TrendingUp, Users, Lightbulb, Copy, Check, LayoutTemplate } from 'lucide-react';
+import { getGeminiModel, withRetry } from '@/lib/gemini';
 import Markdown from 'react-markdown';
-import { motion, AnimatePresence } from 'motion/react';
 
 export default function AppBlueprintGenerator() {
-  const [appIdea, setAppIdea] = useState('');
+  const [focusArea, setFocusArea] = useState('');
   const [loading, setLoading] = useState(false);
   const [blueprint, setBlueprint] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const statusMessages = [
-    "Analyzing market trends...",
-    "Structuring architecture...",
-    "Selecting tech stack...",
-    "Defining monetization strategies...",
-    "Generating detailed blueprint...",
-    "Finalizing documentation..."
-  ];
 
   const generateBlueprint = async () => {
-    if (!appIdea.trim()) return;
-    
     setLoading(true);
     setBlueprint(null);
-    setStatusMessage(statusMessages[0]);
-
-    const interval = setInterval(() => {
-      setStatusMessage(prev => {
-        const currentIndex = statusMessages.indexOf(prev);
-        return statusMessages[(currentIndex + 1) % statusMessages.length];
-      });
-    }, 3000);
 
     try {
-      const ai = getGeminiClient();
+      const ai = getGeminiModel();
       const prompt = `
-        You are a world-class Product Strategist, Technical Architect, and Market Analyst.
-        Generate a comprehensive, production-ready App Blueprint for the following application idea:
+        You are an expert App Architect, Product Manager, and Market Analyst.
+        Generate a comprehensive App Blueprint and Market Analysis for the "World Archaeos Ancient Civilization Suite".
         
-        APP IDEA: "${appIdea}"
+        ${focusArea ? `Specific Focus / Target Audience requested by user: ${focusArea}` : 'Provide a general, holistic overview.'}
         
-        The blueprint MUST be detailed and include the following sections:
+        The blueprint MUST include the following detailed sections:
         
-        1. **Executive Summary**: A high-level overview of the app's value proposition.
+        1. **Full App Blueprint**: 
+           - Core architecture and vision.
+           - Key modules (e.g., Evolution Core, Site Explorer, Artifact Lab, Mystic Oracle, etc.).
+           - Technical stack recommendations (Next.js, Tailwind, Google AI Studio / Gemini API, Leaflet Maps).
         
-        2. **Architecture**: 
-           - System design (e.g., Microservices vs. Monolith).
-           - Frontend/Backend separation.
-           - Database schema overview.
-           - Third-party integrations (APIs, Webhooks).
+        2. **How the App Works**: 
+           - Step-by-step user journey (from onboarding to daily use).
+           - Data flow and AI integration mechanics.
+           - How the "Self-Growth" (Tool Forge) and continuous evolution mechanics operate.
         
-        3. **Technical Stack**: 
-           - Recommended languages, frameworks, and libraries.
-           - Infrastructure (Cloud provider, CI/CD, Hosting).
-           - Security considerations (Auth, Encryption).
+        3. **Market Analysis**: 
+           - Target demographics (Historians, Students, Spiritual Seekers, Gamers, General Public).
+           - Competitor analysis (What exists vs. Why Archaeos is unique).
+           - Market trends in EdTech, AI, and Cultural Heritage.
+           - Potential monetization strategies (Freemium, B2B Education licensing, Premium API access).
         
-        4. **Market Analysis**: 
-           - Target audience demographics and psychographics.
-           - Competitive landscape (Top 3 competitors and your unique differentiator).
-           - Market size and growth potential.
+        4. **Problems Solved for People**: 
+           - Explicitly detail how the "World Archaeos Ancient Civilization Suite" solves real-world problems.
+           - Examples: Making history accessible and interactive, preserving cultural heritage digitally, providing personalized spiritual/historical guidance, overcoming language barriers in ancient texts, and offering a unified platform for disparate historical tools.
         
-        5. **Monetization Strategies**: 
-           - Primary and secondary revenue streams (e.g., Subscription, Ads, In-app purchases, B2B licensing).
-           - Pricing model recommendations.
-        
-        6. **Roadmap & MVP**: 
-           - Phase 1 (MVP) features.
-           - Phase 2 & 3 expansion plans.
-        
-        Format the output in clean, professional, and highly readable Markdown. Use clear headings, bullet points, and bold text for emphasis.
+        Format the output in clean, professional, and highly readable Markdown. Use headings, bullet points, and bold text for emphasis.
       `;
 
       const response = await withRetry(() => ai.models.generateContent({
         model: "gemini-3.1-pro-preview",
         contents: prompt,
         config: {
-          systemInstruction: "You are a master product strategist and technical architect. Deliver high-value, actionable business and technical blueprints. Use professional tone and structured formatting."
+          systemInstruction: "You are a master product strategist and technical architect. Deliver high-value, actionable business and technical blueprints."
         }
       }));
 
       setBlueprint(response.text || "Failed to generate blueprint.");
-      
-      // Scroll to result
-      setTimeout(() => {
-        scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-
     } catch (error) {
       console.error("Blueprint Generation Error:", error);
       setBlueprint("An error occurred while generating the blueprint. Please try again.");
     } finally {
-      clearInterval(interval);
       setLoading(false);
     }
   };
@@ -123,184 +73,119 @@ export default function AppBlueprintGenerator() {
     }
   };
 
-  const downloadAsMarkdown = () => {
-    if (!blueprint) return;
-    const blob = new Blob([blueprint], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `app-blueprint-${Date.now()}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-20">
-      {/* Hero Section */}
-      <section className="relative bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-gray-100 overflow-hidden">
-        <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
-          <LayoutTemplate className="w-64 h-64" />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-[#1a1a1a] text-[#f5f2ed] rounded-[2rem] p-8 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <LayoutTemplate className="w-48 h-48" />
         </div>
-        
-        <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-6">
-            <Sparkles className="w-3.5 h-3.5" />
-            AI-Powered Strategy
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-emerald-500/20 rounded-xl text-emerald-400">
+              <LayoutTemplate className="w-6 h-6" />
+            </div>
+            <h2 className="font-serif text-3xl">App Blueprint Generator</h2>
           </div>
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-6 leading-tight">
-            Turn your vision into a <span className="text-indigo-600">Production Blueprint</span>
-          </h1>
-          <p className="text-lg text-gray-600 leading-relaxed mb-8">
-            Describe your app idea, and our AI architect will generate a comprehensive technical, business, and market strategy to help you build and scale.
+          <p className="text-sm opacity-70 max-w-2xl">
+            Generate a comprehensive architectural blueprint, market analysis, and problem-solving strategy for the World Archaeos Suite using Google AI Studio.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <textarea
-                value={appIdea}
-                onChange={(e) => setAppIdea(e.target.value)}
-                placeholder="Describe your app idea (e.g., A decentralized marketplace for local farmers...)"
-                className="w-full h-32 md:h-40 bg-gray-50 border border-gray-100 rounded-2xl p-5 text-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all resize-none shadow-inner"
-              />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Controls */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-[#1a1a1a]/5">
+            <h3 className="font-serif text-xl mb-4 flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-amber-500" />
+              Generator Settings
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
+                  Specific Focus (Optional)
+                </label>
+                <textarea
+                  value={focusArea}
+                  onChange={(e) => setFocusArea(e.target.value)}
+                  placeholder="e.g., Focus heavily on the educational market and student engagement..."
+                  className="w-full h-32 bg-[#f5f2ed] border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all resize-none"
+                />
+              </div>
+
+              <button
+                onClick={generateBlueprint}
+                disabled={loading}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                Generate Full Blueprint
+              </button>
             </div>
           </div>
-          
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              onClick={generateBlueprint}
-              disabled={loading || !appIdea.trim()}
-              className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-lg shadow-indigo-200"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
-              {loading ? 'Architecting...' : 'Generate Blueprint'}
-            </button>
-            <button 
-              onClick={() => setAppIdea("A mobile app that uses AI to help users identify and care for indoor plants, including a community marketplace for cuttings.")}
-              className="px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-medium transition-all text-sm"
-            >
-              Try Example
-            </button>
+
+          {/* Info Cards */}
+          <div className="grid grid-cols-1 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-[#1a1a1a]/5 flex items-start gap-4">
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm mb-1">Market Analysis</h4>
+                <p className="text-xs text-gray-500">Identifies target demographics, competitors, and monetization strategies.</p>
+              </div>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-[#1a1a1a]/5 flex items-start gap-4">
+              <div className="p-2 bg-purple-50 text-purple-600 rounded-lg shrink-0">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm mb-1">Problem Solving</h4>
+                <p className="text-xs text-gray-500">Articulates exactly how Archaeos improves lives and solves real-world issues.</p>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
 
-      {/* Features Grid */}
-      {!blueprint && !loading && (
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { icon: Cpu, title: "Architecture", desc: "Scalable system design and database schemas.", color: "bg-blue-50 text-blue-600" },
-            { icon: TrendingUp, title: "Market Analysis", desc: "Demographics, competitors, and trends.", color: "bg-emerald-50 text-emerald-600" },
-            { icon: DollarSign, title: "Monetization", desc: "Revenue streams and pricing models.", color: "bg-amber-50 text-amber-600" },
-            { icon: Target, title: "MVP Roadmap", desc: "Prioritized features for your first launch.", color: "bg-purple-50 text-purple-600" }
-          ].map((feature, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className={`w-12 h-12 ${feature.color} rounded-2xl flex items-center justify-center mb-4`}>
-                <feature.icon className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-gray-900 mb-2">{feature.title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
-            </motion.div>
-          ))}
-        </section>
-      )}
-
-      {/* Loading State */}
-      <AnimatePresence>
-        {loading && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-[2.5rem] p-12 shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center space-y-6"
-          >
-            <div className="relative">
-              <div className="w-24 h-24 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-              <LayoutTemplate className="w-10 h-10 text-indigo-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        {/* Output Document */}
+        <div className="lg:col-span-8">
+          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-[#1a1a1a]/5 h-full min-h-[600px] flex flex-col">
+            <div className="flex items-center justify-between mb-6 border-b border-[#1a1a1a]/5 pb-4">
+              <h3 className="font-serif text-2xl">World Archaeos Blueprint</h3>
+              {blueprint && (
+                <button
+                  onClick={copyToClipboard}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#f5f2ed] hover:bg-gray-200 rounded-xl transition-colors text-sm font-medium text-gray-700"
+                >
+                  {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  {copied ? 'Copied!' : 'Copy Document'}
+                </button>
+              )}
             </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-serif font-bold text-gray-900">{statusMessage}</h3>
-              <p className="text-gray-500 max-w-sm mx-auto">Our AI is synthesizing complex data to build your custom application strategy.</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Result Section */}
-      <div ref={scrollRef}>
-        <AnimatePresence>
-          {blueprint && !loading && (
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden"
-            >
-              {/* Toolbar */}
-              <div className="px-8 py-6 bg-gray-50 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="font-bold text-gray-900">Application Blueprint</h2>
-                    <p className="text-xs text-gray-500">Generated on {new Date().toLocaleDateString()}</p>
-                  </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-4">
+              {loading ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-40 text-center py-20">
+                  <Loader2 className="w-12 h-12 animate-spin mb-6 text-emerald-600" />
+                  <p className="font-serif text-2xl italic">Architecting Blueprint...</p>
+                  <p className="text-sm mt-2 max-w-md">Analyzing market trends, structuring app modules, and defining problem-solving strategies via Google AI Studio.</p>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={copyToClipboard}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 rounded-xl transition-all text-sm font-medium"
-                  >
-                    {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                    {copied ? 'Copied' : 'Copy'}
-                  </button>
-                  <button
-                    onClick={downloadAsMarkdown}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 rounded-xl transition-all text-sm font-medium"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 rounded-xl transition-all text-sm font-medium">
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </button>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-8 md:p-12">
-                <div className="prose prose-indigo max-w-none prose-headings:font-serif prose-headings:font-bold prose-p:text-gray-600 prose-li:text-gray-600">
+              ) : blueprint ? (
+                <div className="prose prose-emerald max-w-none">
                   <Markdown>{blueprint}</Markdown>
                 </div>
-                
-                <div className="mt-12 pt-8 border-t border-gray-100 flex items-center justify-between">
-                  <p className="text-sm text-gray-400 italic">
-                    This blueprint is an AI-generated recommendation. Always validate technical choices with your engineering team.
-                  </p>
-                  <button 
-                    onClick={() => {
-                      setBlueprint(null);
-                      setAppIdea('');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="text-indigo-600 font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all"
-                  >
-                    Generate Another <ChevronRight className="w-4 h-4" />
-                  </button>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center opacity-20 text-center py-20">
+                  <LayoutTemplate className="w-20 h-20 mb-6" />
+                  <p className="font-serif text-3xl italic">Ready to Generate</p>
+                  <p className="text-sm mt-4 max-w-md">Click the generate button to create a comprehensive business and technical blueprint for the World Archaeos Suite.</p>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

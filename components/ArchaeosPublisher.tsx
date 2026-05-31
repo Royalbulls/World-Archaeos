@@ -39,7 +39,7 @@ import {
   Copy
 } from 'lucide-react';
 import { getGeminiModel, withRetry } from '@/lib/gemini';
-import { getBase64Image } from '@/lib/utils';
+import { extractJson } from '@/lib/utils';
 import { Modality } from "@google/genai";
 import Markdown from 'react-markdown';
 import Image from 'next/image';
@@ -50,7 +50,7 @@ interface ArchaeosPublisherProps {
   globalLanguage: string;
 }
 
-type PublisherTab = 'book' | 'episodes' | 'audio' | 'social' | 'legacy' | 'news' | 'research' | 'youtube' | 'artwork';
+type PublisherTab = 'book' | 'episodes' | 'audio' | 'social' | 'legacy' | 'news' | 'research' | 'youtube' | 'artwork' | 'kv_music';
 type ContentType = 'chapter' | 'blog' | 'message' | 'lyrics' | 'news';
 
 export default function ArchaeosPublisher({ profile, globalLanguage }: ArchaeosPublisherProps) {
@@ -58,7 +58,7 @@ export default function ArchaeosPublisher({ profile, globalLanguage }: ArchaeosP
   const [contentType, setContentType] = useState<ContentType>('chapter');
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<string | null>(null);
-  const [songData, setSongData] = useState<{ title: string; lyrics: string; style: string; caption: string; visualPrompt?: string; imageUrl?: string | null } | null>(null);
+  const [songData, setSongData] = useState<{ title: string; lyrics: string; style: string; voice: string; caption: string; visualPrompt?: string; imageUrl?: string | null } | null>(null);
   const [scriptData, setScriptData] = useState<{ title: string; script: string; visualCues: string; metadata: string } | null>(null);
   const [socialCampaign, setSocialCampaign] = useState<{ twitter: string; instagram: string; linkedin: string; monetization: string } | null>(null);
   const [youtubeData, setYoutubeData] = useState<{ title: string; description: string; hook: string; script: string; seoTags: string[]; monetization: string; thumbnailPrompt: string; imageUrl?: string | null } | null>(null);
@@ -70,6 +70,7 @@ export default function ArchaeosPublisher({ profile, globalLanguage }: ArchaeosP
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [title, setTitle] = useState('');
   const [musicPrompt, setMusicPrompt] = useState('');
+  const [personName, setPersonName] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
@@ -188,8 +189,12 @@ export default function ArchaeosPublisher({ profile, globalLanguage }: ArchaeosP
           
           The response MUST be a JSON object with the following fields:
           1. "title": A catchy song title (max 78 characters).
-          2. "lyrics": Full song lyrics including verses, chorus, and bridge (max 5000 characters). Do NOT include the title or description in the lyrics themselves unless it naturally fits.
-          3. "style": A description of the musical style, mood, and instrumentation (max 1000 characters).
+          2. "lyrics": Full song lyrics including verses, chorus, and bridge (max 5000 characters). 
+             - CRITICAL: Use square brackets [] for all musical directions and structure tags (e.g., [Verse 1], [Chorus], [Bridge], [Intro], [Outro]).
+             - NEW RULE: You MUST also include musical element tags inside the lyrics where appropriate to indicate transitions or specific sounds (e.g., [ EDM ], [ Heavy Bass Drop ], [ Traditional Flute Solo ], [ Dramatic Pause ], [ Synth Riff ]). These should be on their own lines or at the start of a section.
+             - CRITICAL: Do NOT include the "Musical Style & Description" or the "Title" within the "lyrics" field itself.
+          3. "style": A highly detailed and diverse description of the musical style, arrangement, mood, and specific instrumentation (max 1000 characters). Use professional musical terminology to create a unique sound profile.
+          4. "voice": A detailed recommendation for the vocal style, tone, and delivery (e.g., "Male, husky baritone with emotional depth," or "High-energy female pop vocals with auto-tune accents") (max 500 characters).
           
           Language: ${globalLanguage}.`;
         } else {
@@ -263,10 +268,14 @@ export default function ArchaeosPublisher({ profile, globalLanguage }: ArchaeosP
         
         The response MUST be a JSON object with the following fields:
         1. "title": A catchy song title (max 78 characters).
-        2. "lyrics": Full song lyrics including verses, chorus, and bridge (max 5000 characters). Do NOT include the title or description in the lyrics themselves unless it naturally fits.
-        3. "style": A description of the musical style, mood, and instrumentation (max 1000 characters).
-        4. "caption": A catchy social media caption for this song (max 500 characters).
-        5. "visualPrompt": A detailed prompt for an image generator to create a cover art for this song.
+        2. "lyrics": Full song lyrics including verses, chorus, and bridge (max 5000 characters). 
+           - CRITICAL: Use square brackets [] for all musical directions and structure tags (e.g., [Verse 1], [Chorus], [Bridge], [Intro], [Outro]).
+           - NEW RULE: You MUST also include musical element tags inside the lyrics where appropriate to indicate transitions or specific sounds (e.g., [ EDM ], [ Heavy Bass Drop ], [ Traditional Flute Solo ], [ Dramatic Pause ], [ Synth Riff ]). These should be on their own lines or at the start of a section.
+           - CRITICAL: Do NOT include the "Musical Style & Description" or the "Title" within the "lyrics" field itself.
+        3. "style": A highly detailed and diverse description of the musical style, arrangement, mood, and specific instrumentation (max 1000 characters). Use professional musical terminology to create a unique sound profile.
+        4. "voice": A detailed recommendation for the vocal style, tone, and delivery (e.g., "Male, husky baritone with emotional depth," or "High-energy female pop vocals with auto-tune accents") (max 500 characters).
+        5. "caption": A catchy social media caption for this song (max 500 characters).
+        6. "visualPrompt": A detailed prompt for an image generator to create a cover art for this song.
         
         Language: ${globalLanguage}.`;
         systemInstruction = "You are the Archaeos Audio Director. You specialize in creating high-vibrational music and lyrics that bridge ancient sounds with modern beats.";
@@ -296,21 +305,38 @@ export default function ArchaeosPublisher({ profile, globalLanguage }: ArchaeosP
         Provide a comprehensive, accurate, and highly detailed report.
         Language: ${globalLanguage}.`;
         systemInstruction = "You are the Archaeos Deep Research Intelligence. Your purpose is to perform exhaustive, multi-dimensional investigations into any subject, person, or object with absolute precision and depth.";
+      } else if (activeTab === 'kv_music') {
+        prompt = `Generate a professional, high-quality Song Brief for a personalized song order at "KV Music Studio". 
+        
+        Occasion/Type: "${title}"
+        Name/Subject: "${personName}"
+        User's Vision/Story: "${musicPrompt}"
+        
+        The response should be a structured professional briefing document for a music producer. 
+        Include sections for:
+        - **Project Overview**: Clear summary of the goal.
+        - **Emotional Architecture**: The exact vibe and feeling required (be descriptive).
+        - **Lyric Cornerstones**: Specific quotes, names, or events to include in the song.
+        - **Musical DNA**: Specific genre, tempo, and instrumentation recommendations.
+        - **Vocal Character**: Recommended voice type and delivery style.
+        - **Distribution Recommendations**: How this song could be used socially.
+        
+        Language: ${globalLanguage}. Use a creative and inspiring tone.`;
+        systemInstruction = "You are a World-Class Music Consultant at KV Music Studio. Your expertise lies in translating human emotions and stories into precise creative briefs for AI music production.";
       } else if (activeTab === 'artwork') {
         try {
           const imageAi = getGeminiModel("gemini-2.5-flash-image");
           const imageParts: any[] = [{ text: `Create a highly detailed, cinematic, and mystical artwork based on this prompt: ${title}. ${musicPrompt ? `Style: ${musicPrompt}` : ''}` }];
           
           if (profile?.profilePhoto) {
-            const base64Data = await getBase64Image(profile.profilePhoto);
-            if (base64Data) {
-              imageParts.push({
-                inlineData: {
-                  mimeType: base64Data.mimeType,
-                  data: base64Data.data
-                }
-              });
-            }
+            const mimeMatch = profile.profilePhoto.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+            const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+            imageParts.push({
+              inlineData: {
+                mimeType: mimeType,
+                data: profile.profilePhoto.split(',')[1] || profile.profilePhoto
+              }
+            });
           }
 
           const imageResponse = await withRetry(() => imageAi.models.generateContent({
@@ -362,8 +388,16 @@ export default function ArchaeosPublisher({ profile, globalLanguage }: ArchaeosP
       let finalGeneratedText = '';
       if (isJson) {
         const rawText = response.text || '{}';
-        const jsonText = rawText.match(/\{[\s\S]*\}/)?.[0] || rawText;
-        const data = JSON.parse(jsonText);
+        const jsonText = extractJson(rawText);
+
+        let data: any;
+        try {
+          data = JSON.parse(jsonText);
+        } catch (parseErr) {
+          console.error("JSON parse failed even after extraction:", parseErr, "Text:", jsonText);
+          throw parseErr;
+        }
+
         if ((activeTab === 'book' && contentType === 'lyrics') || activeTab === 'audio') {
           // Generate Cover Art for Song
           let imageUrl = null;
@@ -373,15 +407,14 @@ export default function ArchaeosPublisher({ profile, globalLanguage }: ArchaeosP
               const imageParts: any[] = [{ text: `Cinematic song cover art for: ${data.visualPrompt}. Style: ${data.style}. The main character in the image MUST look exactly like the person in the provided reference photo, but styled as the artist or hero of this song.` }];
               
               if (profile?.profilePhoto) {
-                const base64Data = await getBase64Image(profile.profilePhoto);
-                if (base64Data) {
-                  imageParts.push({
-                    inlineData: {
-                      mimeType: base64Data.mimeType,
-                      data: base64Data.data
-                    }
-                  });
-                }
+                const mimeMatch = profile.profilePhoto.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+                const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+                imageParts.push({
+                  inlineData: {
+                    mimeType: mimeType,
+                    data: profile.profilePhoto.split(',')[1] || profile.profilePhoto
+                  }
+                });
               }
 
               const imageResponse = await withRetry(() => imageAi.models.generateContent({
@@ -422,15 +455,14 @@ export default function ArchaeosPublisher({ profile, globalLanguage }: ArchaeosP
               const imageParts: any[] = [{ text: `Create a highly clickable, viral YouTube thumbnail based on this prompt: ${data.thumbnailPrompt}. The main character in the image MUST look exactly like the person in the provided reference photo, but styled appropriately for the video topic. Use high contrast, expressive faces, and bold visual elements.` }];
               
               if (profile?.profilePhoto) {
-                const base64Data = await getBase64Image(profile.profilePhoto);
-                if (base64Data) {
-                  imageParts.push({
-                    inlineData: {
-                      mimeType: base64Data.mimeType,
-                      data: base64Data.data
-                    }
-                  });
-                }
+                const mimeMatch = profile.profilePhoto.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+                const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+                imageParts.push({
+                  inlineData: {
+                    mimeType: mimeType,
+                    data: profile.profilePhoto.split(',')[1] || profile.profilePhoto
+                  }
+                });
               }
 
               const imageResponse = await withRetry(() => imageAi.models.generateContent({
@@ -667,7 +699,7 @@ ${youtubeData.monetization}
 
     let downloadContent = content;
     if (songData) {
-      downloadContent = `Title: ${songData.title}\n\nStyle: ${songData.style}\n\nLyrics:\n${songData.lyrics}`;
+      downloadContent = `Title: ${songData.title}\n\nStyle: ${songData.style}\n\nVoice Recommendation: ${songData.voice}\n\nLyrics:\n${songData.lyrics}`;
     } else if (scriptData) {
       downloadContent = `Title: ${scriptData.title}\n\nVisual Cues:\n${scriptData.visualCues}\n\nScript:\n${scriptData.script}\n\nMetadata:\n${scriptData.metadata}`;
     } else if (socialCampaign) {
@@ -731,6 +763,7 @@ ${youtubeData.monetization}
               { id: 'audio', label: 'Audio Studio', icon: Mic2 },
               { id: 'social', label: 'Social Hub', icon: Users },
               { id: 'youtube', label: 'YouTube Growth', icon: Youtube },
+              { id: 'kv_music', label: 'KV Music Studio', icon: Music },
               { id: 'legacy', label: 'Legacy Analysis', icon: ShieldAlert },
               { id: 'artwork', label: 'Artwork Download', icon: Download }
             ].map((tab) => (
@@ -756,7 +789,7 @@ ${youtubeData.monetization}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {activeTab !== 'social' && activeTab !== 'youtube' ? (
+        {activeTab !== 'social' && activeTab !== 'youtube' && activeTab !== 'kv_music' ? (
           <>
             {/* Editor Controls */}
             <div className="lg:col-span-4 space-y-6">
@@ -1090,6 +1123,21 @@ ${youtubeData.monetization}
                               </button>
                             </div>
                             <p className="text-sm text-indigo-800 leading-relaxed italic">{songData.style}</p>
+                          </div>
+
+                          {/* Voice Recommendation Section */}
+                          <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-amber-600">Voice Recommendation</label>
+                              <button 
+                                onClick={() => copyToClipboard(songData.voice)}
+                                className="p-2 bg-white rounded-lg text-amber-600 hover:bg-amber-50 transition-all shadow-sm"
+                                title="Copy Voice Info"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                            <p className="text-sm text-amber-800 leading-relaxed">{songData.voice}</p>
                           </div>
 
                           {/* Song Caption Section */}
@@ -1610,6 +1658,219 @@ ${youtubeData.monetization}
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'kv_music' ? (
+          <div className="lg:col-span-12">
+            <div className="bg-white rounded-[3rem] shadow-xl border border-[#1a1a1a]/5 overflow-hidden">
+              {/* KV Music Hero */}
+              <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-black p-12 text-white relative">
+                <div className="absolute top-0 right-0 p-12 opacity-10">
+                  <Music className="w-64 h-64" />
+                </div>
+                <div className="relative z-10 max-w-3xl">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full mb-6 border border-white/20">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200">AI Powered Music Studio</span>
+                  </div>
+                  <h2 className="font-serif text-5xl mb-4 leading-tight">KV MUSIC – अपना खुद का गाना बनवाएं! 🎵🔥</h2>
+                  <p className="text-xl opacity-80 leading-relaxed mb-8">
+                    अब आप भी बना सकते हैं अपना पसंदीदा गाना – बर्थडे सॉन्ग, लव सॉन्ग, दर्द भरे नग़मे या बिज़नेस प्रमोशन जिंगल्स। 
+                    हम हर भाषा और हर इमोशन के लिए गाना तैयार करते हैं।
+                  </p>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => window.open('tel:7869690819')}
+                      className="px-8 py-4 bg-amber-500 text-black font-bold uppercase tracking-widest rounded-2xl hover:bg-amber-400 transition-all shadow-xl flex items-center gap-2"
+                    >
+                      <Plus className="w-5 h-5" /> अभी ऑर्डर करें
+                    </button>
+                    <div className="flex items-center gap-4 px-6 py-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
+                      <div className="p-2 bg-white/10 rounded-lg">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest opacity-50">Studio Location</p>
+                        <p className="text-sm font-bold">Ballabh Nagar, Sagar, MP</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-12">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                  {/* Left: Languages & Pricing */}
+                  <div className="space-y-12">
+                    <div>
+                      <h3 className="font-serif text-2xl mb-6 flex items-center gap-2">
+                        <Globe className="w-6 h-6 text-indigo-600" />
+                        🌍 भाषाओं (Languages)
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {['हिंदी', 'अंग्रेज़ी', 'पंजाबी', 'भोजपुरी', 'मराठी', 'गुजराती', 'बांग्ला', 'तमिल', 'तेलुगु', 'कन्नड़', 'राजस्थानी', 'हरियाणवी', 'संस्कृत', 'उर्दू', 'मैथिली'].map((lang, i) => (
+                          <span key={i} className="px-4 py-2 bg-[#f5f2ed] rounded-xl text-xs font-bold transition-all hover:bg-indigo-600 hover:text-white cursor-default">
+                            {lang}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-indigo-50 p-8 rounded-[2rem] border border-indigo-100">
+                      <h3 className="font-serif text-2xl mb-6 flex items-center gap-2 text-indigo-900">
+                        <DollarSign className="w-6 h-6" />
+                        💰 कीमत (Offer)
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm">
+                          <div>
+                            <p className="text-sm font-bold">1 मिनट गाना</p>
+                            <p className="text-[10px] opacity-50 uppercase">Short Version</p>
+                          </div>
+                          <p className="text-xl font-serif font-bold text-indigo-600">₹199/-</p>
+                        </div>
+                        <div className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm">
+                          <div>
+                            <p className="text-sm font-bold">3 मिनट फुल सॉन्ग</p>
+                            <p className="text-[10px] opacity-50 uppercase">Full Experience</p>
+                          </div>
+                          <p className="text-xl font-serif font-bold text-indigo-600">₹499/-</p>
+                        </div>
+                        <div className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm">
+                          <div>
+                            <p className="text-sm font-bold">बिजनेस जिंगल</p>
+                            <p className="text-[10px] opacity-50 uppercase">Professional Promo</p>
+                          </div>
+                          <p className="text-xl font-serif font-bold text-indigo-600">₹1499/-</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Middle & Right: Emotions & Process */}
+                  <div className="lg:col-span-2 space-y-12">
+                    <h3 className="font-serif text-2xl mb-6">🎭 इमोशंस और कैटेगरी</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {[
+                        { title: 'शादी & एनिवर्सरी', icon: '💍', desc: 'दूल्हा-दुल्हन के नाम से पर्सनल गाने, विदाई स्पेशल।' },
+                        { title: 'बर्थडे सॉन्ग्स', icon: '🎂', desc: 'पर्सनल बर्थडे सॉन्ग, DJ Remix, Funny & Roast।' },
+                        { title: 'रोमांटिक & लव', icon: '❤️', desc: 'प्यार के नग़मे, प्रपोज सॉन्ग, ब्रेकअप थीम।' },
+                        { title: 'मोटिवेशनल', icon: '🚀', desc: 'बिजनेस प्रमोशन, रैप, लाइफ सक्सेस थीम।' },
+                        { title: 'दोस्ती & भाईचारा', icon: '🤝', desc: 'Best Friend Anthem, भाई स्पेशल।' },
+                        { title: 'भक्ति सॉन्ग्स', icon: '🙏', desc: 'हनुमान चालीसा Remix, शिव भजन Hip-Hop।' },
+                        { title: 'कॉमेडी & मीम', icon: '🤣', desc: 'Funny Roast, जीजा-साली नोक-झोंक।' },
+                        { title: 'देशभक्ति', icon: '🇮🇳', desc: 'सेना ट्रिब्यूट, स्वतंत्रता दिवस स्पेशल।' }
+                      ].map((cat, i) => (
+                        <div key={i} className="p-6 bg-white rounded-[2rem] border border-[#1a1a1a]/5 hover:border-indigo-600 hover:shadow-lg transition-all group">
+                          <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">{cat.icon}</div>
+                          <h4 className="font-bold mb-2">{cat.title}</h4>
+                          <p className="text-xs opacity-60 leading-relaxed">{cat.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="bg-indigo-900 text-white p-10 rounded-[2.5rem] shadow-2xl">
+                      <div className="flex items-center justify-between mb-8">
+                        <h3 className="font-serif text-2xl flex items-center gap-2">
+                          <Sparkles className="w-6 h-6 text-amber-400" />
+                          Song Briefing Tool
+                        </h3>
+                        <div className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/20">
+                          AI Powered
+                        </div>
+                      </div>
+                      <p className="text-sm opacity-60 mb-8 leading-relaxed">
+                        अपने गाने के लिए एक प्रोफेशनल ब्रीफ तैयार करें। यह ब्रीफ आप हमें भेज सकते हैं ताकि हम आपका गाना बिलकुल वैसा ही बनाएं जैसा आप चाहते हैं।
+                      </p>
+                      
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] uppercase tracking-widest opacity-40 font-bold">Song Occasion</label>
+                            <input 
+                              type="text" 
+                              placeholder="e.g. Birthday, Anniversary" 
+                              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-amber-400 transition-all"
+                              value={title}
+                              onChange={(e) => setTitle(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] uppercase tracking-widest opacity-40 font-bold">Person Name / Subject</label>
+                            <input 
+                              type="text" 
+                              placeholder="e.g. Rahul, My Business" 
+                              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-amber-400 transition-all"
+                              value={personName}
+                              onChange={(e) => setPersonName(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase tracking-widest opacity-40 font-bold">Specific Message or Story</label>
+                          <textarea 
+                            placeholder="e.g. He loves cricket and this is his 25th birthday..." 
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-amber-400 transition-all h-24 resize-none"
+                            value={musicPrompt}
+                            onChange={(e) => setMusicPrompt(e.target.value)}
+                          />
+                        </div>
+
+                        <button 
+                          onClick={generateContent}
+                          disabled={loading}
+                          className="w-full bg-amber-500 text-black py-4 rounded-2xl font-bold uppercase tracking-widest hover:bg-amber-400 transition-all flex items-center justify-center gap-2"
+                        >
+                          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5" /> Generate Professional Brief</>}
+                        </button>
+
+                        {activeTab === 'kv_music' && content && (
+                          <div className="mt-8 p-6 bg-white/5 rounded-2xl border border-white/10">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Professional Song Brief</h4>
+                              <button 
+                                onClick={() => copyToClipboard(content)}
+                                className="text-[10px] font-bold text-amber-400 hover:underline flex items-center gap-1"
+                              >
+                                <Copy className="w-3 h-3" /> Copy Brief
+                              </button>
+                            </div>
+                            <div className="text-sm text-white/90 leading-relaxed prose prose-invert prose-amber max-w-none">
+                              <Markdown>{content}</Markdown>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-black text-white p-10 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row items-center gap-10">
+                      <div className="shrink-0">
+                        <div className="w-20 h-20 bg-indigo-600 rounded-2xl flex items-center justify-center text-3xl font-bold animate-pulse">
+                          📞
+                        </div>
+                      </div>
+                      <div className="text-center md:text-left flex-1">
+                        <h3 className="font-serif text-2xl mb-2">अभी अपना पर्सनल गाना बुक करें!</h3>
+                        <p className="text-sm opacity-60 mb-6">कॉल या व्हाट्सप्प करें: 7869690819</p>
+                        <div className="flex flex-wrap justify-center md:justify-start gap-4">
+                          <button 
+                            onClick={() => window.open('https://wa.me/917869690819')}
+                            className="px-6 py-3 bg-emerald-600 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-emerald-500 transition-all"
+                          >
+                            WhatsApp
+                          </button>
+                          <button 
+                            onClick={() => window.open('tel:7869690819')}
+                            className="px-6 py-3 bg-white text-black rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-all"
+                          >
+                            Call Now
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

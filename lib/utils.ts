@@ -5,36 +5,59 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export async function getBase64Image(url: string): Promise<{ mimeType: string, data: string } | null> {
-  if (!url) return null;
+export function extractJson(text: string): string {
+  let jsonText = text.trim();
   
-  if (url.startsWith('data:')) {
-    const match = url.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-    if (match) {
-      return { mimeType: match[1], data: match[2] };
+  // Remove markdown block if present
+  if (jsonText.includes('```')) {
+    const match = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (match) jsonText = match[1].trim();
+  }
+
+  // Find first balanced object or array
+  const firstBrace = jsonText.indexOf('{');
+  const firstBracket = jsonText.indexOf('[');
+  
+  let startIdx = -1;
+  let opener = '';
+  let closer = '';
+
+  if (firstBrace !== -1 && (firstBracket === -1 || (firstBrace < firstBracket))) {
+    startIdx = firstBrace;
+    opener = '{';
+    closer = '}';
+  } else if (firstBracket !== -1) {
+    startIdx = firstBracket;
+    opener = '[';
+    closer = ']';
+  }
+
+  if (startIdx === -1) return jsonText;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = startIdx; i < jsonText.length; i++) {
+    const char = jsonText[i];
+    
+    if (char === '"' && !escape) {
+      inString = !inString;
     }
-    return null;
-  }
-  
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        const match = result.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-        if (match) {
-          resolve({ mimeType: match[1], data: match[2] });
-        } else {
-          resolve(null);
+
+    if (!inString) {
+      if (char === opener) depth++;
+      else if (char === closer) {
+        depth--;
+        if (depth === 0) {
+          return jsonText.substring(startIdx, i + 1);
         }
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch (e) {
-    console.error("Failed to fetch image for base64 conversion", e);
-    return null;
+      }
+    }
+
+    if (char === '\\' && !escape) escape = true;
+    else escape = false;
   }
+
+  return jsonText.substring(startIdx);
 }

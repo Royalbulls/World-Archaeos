@@ -18,9 +18,9 @@ import {
   Globe,
   AtSign,
   Palette,
-  Camera,
-  MessageCircle,
-  Video,
+  Instagram,
+  Twitter,
+  Youtube,
   Volume2,
   Loader2
 } from 'lucide-react';
@@ -446,18 +446,18 @@ export default function Namkaran() {
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="p-1 bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-600 rounded transition-all"
-                                title="Check Camera"
+                                title="Check Instagram"
                               >
-                                <Camera className="w-3 h-3" />
+                                <Instagram className="w-3 h-3" />
                               </a>
                               <a 
                                 href={`https://x.com/${(n.suggestedHandle || '').replace('@', '')}`} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="p-1 bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-400 rounded transition-all"
-                                title="Check X (MessageCircle)"
+                                title="Check X (Twitter)"
                               >
-                                <MessageCircle className="w-3 h-3" />
+                                <Twitter className="w-3 h-3" />
                               </a>
                               <a 
                                 href={`https://www.youtube.com/@${(n.suggestedHandle || '').replace('@', '')}`} 
@@ -466,7 +466,7 @@ export default function Namkaran() {
                                 className="p-1 bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded transition-all"
                                 title="Check YouTube"
                               >
-                                <Video className="w-3 h-3" />
+                                <Youtube className="w-3 h-3" />
                               </a>
                               <a 
                                 href={`https://www.godaddy.com/en-in/domainsearch/find?domainToCheck=${(n.name || '').toLowerCase()}.com`} 

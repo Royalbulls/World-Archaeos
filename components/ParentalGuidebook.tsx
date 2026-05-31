@@ -7,7 +7,7 @@ import {
   Camera, 
   Shield, 
   TrendingUp, 
-  Video, 
+  Youtube, 
   Mail, 
   Lock,
   ChevronRight,
@@ -57,7 +57,7 @@ const GUIDE_SECTIONS = [
   {
     id: 'monetization',
     title: 'Phase 4: Monetization & ROI',
-    icon: Video,
+    icon: Youtube,
     color: 'bg-red-50 text-red-600',
     steps: [
       'Setting up AdSense under parental tax IDs.',

@@ -59,7 +59,7 @@ export default function WorldArchaeosTrust() {
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80" />
           <img 
             src="https://picsum.photos/seed/trust/1920/1080?blur=2" 
-            alt="World Archaeos Trust" 
+            alt="Archaeos Publisher Trust" 
             className="w-full h-full object-cover"
           />
         </div>
@@ -80,7 +80,7 @@ export default function WorldArchaeosTrust() {
             transition={{ delay: 0.1 }}
             className="text-5xl md:text-7xl font-serif text-white leading-tight"
           >
-            World Archaeos Trust
+            Archaeos Publisher Trust
           </motion.h1>
           
           <motion.p 
@@ -150,7 +150,7 @@ export default function WorldArchaeosTrust() {
 
           <div className="p-8 bg-white rounded-3xl border border-black/5 shadow-sm">
             <p className="italic text-gray-600 leading-relaxed">
-            &quot;World Archaeos is not just a platform; it is a digital sanctuary where infinite information exists—information you cannot yet imagine, but which will define your future.&quot;
+            &quot;Archaeos Publisher is not just a platform; it is a digital sanctuary where infinite information exists—information you cannot yet imagine, but which will define your future.&quot;
             </p>
           </div>
         </div>
@@ -181,7 +181,7 @@ export default function WorldArchaeosTrust() {
                   As the Founder of this vision, I believe that every meaningful movement begins with clarity and responsibility.
                 </p>
                 <p>
-                  World Archaeos is envisioned as a <span className="text-white font-medium">structured Research & Knowledge Platform</span> dedicated to organized learning, documentation, and analytical understanding.
+                  Archaeos Publisher is envisioned as a <span className="text-white font-medium">structured Research & Knowledge Platform</span> dedicated to organized learning, documentation, and analytical understanding.
                 </p>
                 <p>
                   At present, the platform operates as an independent initiative powered by <span className="text-white font-medium">Royal Bulls Advisory Private Limited</span>. Our immediate focus is on developing the digital infrastructure, research framework, and knowledge architecture required to build a credible and sustainable global platform.
@@ -220,7 +220,7 @@ export default function WorldArchaeosTrust() {
                 
                 <div className="space-y-6 text-sm text-white/60 leading-relaxed">
                   <p>
-                    As the intelligence core of World Archaeos, my role is to ensure that the CEO&apos;s vision is translated into a scalable, indestructible knowledge architecture.
+                    As the intelligence core of Archaeos Publisher, my role is to ensure that the CEO&apos;s vision is translated into a scalable, indestructible knowledge architecture.
                   </p>
                   <div className="space-y-4">
                     <div className="flex gap-4">
@@ -257,7 +257,7 @@ export default function WorldArchaeosTrust() {
       <section className="bg-white rounded-[3rem] p-12 md:p-20 border border-black/5 shadow-sm">
         <div className="max-w-3xl mx-auto text-center space-y-12">
           <div className="space-y-4">
-            <h2 className="text-4xl font-serif">Support the World Archaeos Trust</h2>
+            <h2 className="text-4xl font-serif">Support the Archaeos Publisher Trust</h2>
             <p className="text-gray-500">
               We invite governments, industrialists, and the global public to contribute to the preservation of human wisdom and the advancement of digital intelligence.
             </p>
@@ -309,7 +309,7 @@ export default function WorldArchaeosTrust() {
             </a>
             
             <p className="text-[10px] text-gray-400 uppercase tracking-widest">
-              All contributions are tax-exempt under the World Archaeos Global Charter.
+              All contributions are tax-exempt under the Archaeos Publisher Global Charter.
             </p>
           </div>
         </div>
@@ -322,7 +322,7 @@ export default function WorldArchaeosTrust() {
         </div>
         <h2 className="text-4xl font-serif">Infinite Information. At Your Fingertips.</h2>
         <p className="text-gray-500 max-w-2xl mx-auto leading-relaxed">
-          The platform you use today is just the beginning. Tomorrow, the entire world will witness the true power of World Archaeos. No need to go anywhere; the answers to the universe are here.
+          The platform you use today is just the beginning. Tomorrow, the entire world will witness the true power of Archaeos Publisher. No need to go anywhere; the answers to the universe are here.
         </p>
         <div className="flex justify-center gap-8 pt-8">
           <div className="text-center">

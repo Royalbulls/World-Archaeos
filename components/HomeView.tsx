@@ -34,7 +34,7 @@ export default function HomeView({ profile, setActiveTab, categories = [], allTa
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-indigo-600 mb-3">World Archaeos Engine v4.0</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-indigo-600 mb-3">WorldArchaeos Engine v4.0</p>
           <h1 className="font-serif text-5xl md:text-6xl text-[#1a1a1a] leading-tight">
             Welcome back, <br />
             <span className="text-indigo-600 italic font-light">{profile.name || 'Seeker'}</span>

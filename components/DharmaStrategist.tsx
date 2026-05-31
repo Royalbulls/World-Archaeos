@@ -78,7 +78,7 @@ export default function DharmaStrategist({ globalLanguage, profile }: { globalLa
     setLoading(true);
     try {
       const ai = getGeminiModel();
-      const prompt = `Generate a comprehensive "World Archaeos CEO" Business Growth & Marketing Execution Strategy.
+      const prompt = `Generate a comprehensive "Archaeos Publisher CEO" Business Growth & Marketing Execution Strategy.
       
       User Profile (Business DNA Source):
       - Name: ${profile.name}
@@ -163,7 +163,7 @@ export default function DharmaStrategist({ globalLanguage, profile }: { globalLa
             },
             required: ["title", "dna", "marketing", "competitors", "communication", "management", "operations"]
           },
-          systemInstruction: "You are the World Archaeos CEO Advisor, a world-class business strategist who combines ancient Vedic wisdom with modern corporate execution strategies."
+          systemInstruction: "You are the Archaeos Publisher CEO Advisor, a world-class business strategist who combines ancient Vedic wisdom with modern corporate execution strategies."
         }
       }));
 

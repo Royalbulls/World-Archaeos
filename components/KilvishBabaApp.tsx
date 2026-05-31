@@ -30,6 +30,7 @@ import {
   Copy,
   Mail,
   Megaphone,
+  Youtube,
   HeartHandshake,
   Feather
 } from 'lucide-react';
@@ -765,7 +766,7 @@ export default function KilvishBabaApp({ globalLanguage, profile }: { globalLang
                       { id: 'social', label: 'Social Post', icon: Share2 },
                       { id: 'newsletter', label: 'Newsletter', icon: Mail },
                       { id: 'press_release', label: 'Press Release', icon: Megaphone },
-                      { id: 'video_script', label: 'Video Script', icon: Video },
+                      { id: 'video_script', label: 'Video Script', icon: Youtube },
                       { id: 'fundraising_pitch', label: 'CSR Pitch', icon: HeartHandshake },
                       { id: 'memorial_tribute', label: 'Tribute', icon: Feather }
                     ].map((type) => (

@@ -27,7 +27,6 @@ import {
   Check
 } from 'lucide-react';
 import { getGeminiModel, withRetry, Type } from '@/lib/gemini';
-import { getBase64Image } from '@/lib/utils';
 import { Modality } from "@google/genai";
 import Markdown from 'react-markdown';
 import Image from 'next/image';
@@ -133,7 +132,7 @@ const pcmToWav = (base64Pcm: string): { url: string; base64: string } => {
   return { url, base64: base64Pcm };
 };
 
-export default function AIKathaVachak({ globalLanguage, logActivity }: { globalLanguage: string, logActivity?: (action: string, tool: string) => void }) {
+export default function AIKathaVachak({ globalLanguage, profile, logActivity }: { globalLanguage: string, profile?: any, logActivity?: (action: string, tool: string) => void }) {
   const { user } = useAuth();
   const [activeTopic, setActiveTopic] = useState('ramayana');
   const [customTopic, setCustomTopic] = useState('');
@@ -173,7 +172,7 @@ export default function AIKathaVachak({ globalLanguage, logActivity }: { globalL
         id: doc.id,
         ...doc.data(),
         episodes: [] // Episodes will be loaded separately when a series is selected
-      })) as KathaSeries[];
+      })) as unknown as KathaSeries[];
       setSeries(seriesData);
     }, (error) => {
       console.error("Error fetching katha series:", error);
@@ -398,7 +397,6 @@ export default function AIKathaVachak({ globalLanguage, logActivity }: { globalL
           throw new Error("Failed to parse katha episode due to excessive length or invalid format.");
         }
       }
-      setKathaText(data.text);
 
       // 2. Generate Thumbnail Image
       let thumbnailUrl = null;
@@ -406,15 +404,14 @@ export default function AIKathaVachak({ globalLanguage, logActivity }: { globalL
         const imageParts: any[] = [{ text: `A high-quality, cinematic spiritual YouTube thumbnail for: ${data.thumbnailPrompt}. Style: Divine, epic, vibrant colors, 16:9 aspect ratio. The main character in the image MUST look exactly like the person in the provided reference photo, but dressed and styled as a spiritual figure or narrator in this scene.` }];
         
         if (profile?.profilePhoto) {
-          const base64Data = await getBase64Image(profile.profilePhoto);
-          if (base64Data) {
-            imageParts.push({
-              inlineData: {
-                mimeType: base64Data.mimeType,
-                data: base64Data.data
-              }
-            });
-          }
+          const mimeMatch = profile.profilePhoto.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+          const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+          imageParts.push({
+            inlineData: {
+              mimeType: mimeType,
+              data: profile.profilePhoto.split(',')[1] || profile.profilePhoto
+            }
+          });
         }
 
         const imageResponse = await ai.models.generateContent({
@@ -461,7 +458,6 @@ export default function AIKathaVachak({ globalLanguage, logActivity }: { globalL
         const res = pcmToWav(base64Audio);
         url = res.url;
         audioBase64 = res.base64;
-        setAudioUrl(url);
       }
 
       const newEpisodeData = {

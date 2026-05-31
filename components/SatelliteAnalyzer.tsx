@@ -1,14 +1,41 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Satellite, Scan, Pickaxe, History, Compass, 
-  Star, MapPin, Route, Trees, Mountain, Info, Loader2,
-  Lock, Image as ImageIcon, ExternalLink
+  APIProvider, 
+  Map, 
+  AdvancedMarker, 
+  InfoWindow, 
+  useMap, 
+  useAdvancedMarkerRef
+} from '@vis.gl/react-google-maps';
+import { 
+  Satellite, 
+  Navigation, 
+  Info, 
+  Loader2,
+  MapPin,
+  Compass,
+  Mountain,
+  Trees,
+  Route,
+  CheckCircle2,
+  Layers,
+  Scan,
+  Pickaxe,
+  Star,
+  History,
+  Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI, Type } from "@google/genai";
+import { extractJson } from '@/lib/utils';
 import { useAuth } from './AuthProvider';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { collection, addDoc, query, where, orderBy, onSnapshot, Timestamp, limit } from 'firebase/firestore';
+
+const API_KEY = process.env.GOOGLE_MAPS_PLATFORM_KEY || '';
+const hasValidKey = Boolean(API_KEY) && API_KEY !== 'YOUR_API_KEY';
 
 interface Detection {
   id: string;
@@ -22,17 +49,28 @@ interface Detection {
   features: string[];
   userId?: string;
   timestamp?: any;
-  imageUrl?: string;
 }
 
-interface NasaImage {
-  nasa_id: string;
-  title: string;
-  description: string;
-  date_created: string;
-  thumb_url: string;
-  image_url: string;
-}
+const SplashScreen = () => (
+  <div className="flex flex-col items-center justify-center h-[600px] bg-white rounded-3xl border border-[#1a1a1a]/5 p-8 text-center">
+    <div className="w-16 h-16 bg-[#1a1a1a] rounded-full flex items-center justify-center text-[#f5f2ed] mb-6">
+      <Satellite className="w-8 h-8" />
+    </div>
+    <h2 className="font-serif text-2xl font-bold mb-4">Satellite Analysis Required</h2>
+    <p className="text-sm text-[#1a1a1a]/60 max-w-md mb-8">
+      To use the archaeological detection suite, you must provide a Google Maps Platform API key.
+    </p>
+    <div className="bg-[#1a1a1a]/5 p-6 rounded-2xl text-left w-full max-w-md">
+      <p className="text-xs font-bold uppercase tracking-widest opacity-40 mb-3">Setup Instructions</p>
+      <ol className="text-xs space-y-3 list-decimal list-inside opacity-70">
+        <li>Get an API key from the <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener" className="underline font-bold">Google Cloud Console</a>.</li>
+        <li>Open <strong>Settings</strong> (⚙️ gear icon) in AI Studio.</li>
+        <li>Add <code>GOOGLE_MAPS_PLATFORM_KEY</code> as a secret.</li>
+        <li>The app will rebuild automatically.</li>
+      </ol>
+    </div>
+  </div>
+);
 
 const AuthRequiredScreen = ({ onSignIn }: { onSignIn: () => void }) => (
   <div className="flex flex-col items-center justify-center h-[600px] bg-white rounded-3xl border border-[#1a1a1a]/5 p-8 text-center">
@@ -84,17 +122,63 @@ const AnalysisOverlay = ({ isAnalyzing, progress }: { isAnalyzing: boolean; prog
   </AnimatePresence>
 );
 
+const DetectionMarker = ({ detection, onClick }: { detection: Detection; onClick: (d: Detection) => void }) => {
+  const [markerRef] = useAdvancedMarkerRef();
+  
+  return (
+    <AdvancedMarker
+      ref={markerRef}
+      position={{ lat: detection.lat, lng: detection.lng }}
+      onClick={() => onClick(detection)}
+    >
+      <div className="relative group">
+        <div className="absolute -inset-2 bg-yellow-400/20 rounded-full animate-ping" />
+        <div className="relative bg-[#1a1a1a] text-white p-2 rounded-full border-2 border-yellow-400 shadow-lg transition-transform group-hover:scale-110">
+          <Pickaxe className="w-4 h-4" />
+        </div>
+      </div>
+    </AdvancedMarker>
+  );
+};
+
+const MapControls = ({ onAnalyze }: { onAnalyze: () => void }) => {
+  const map = useMap();
+  
+  return (
+    <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+      <button 
+        onClick={onAnalyze}
+        className="bg-[#1a1a1a] text-white px-6 py-3 rounded-2xl shadow-xl flex items-center gap-2 hover:bg-black transition-all active:scale-95"
+      >
+        <Scan className="w-5 h-5" />
+        <span className="font-bold text-sm">Analyze View</span>
+      </button>
+      <div className="bg-white p-2 rounded-2xl shadow-lg flex flex-col gap-1 border border-[#1a1a1a]/5">
+        <button 
+          onClick={() => map?.setMapTypeId('satellite')}
+          className="p-2 hover:bg-[#1a1a1a]/5 rounded-xl transition-all"
+          title="Satellite View"
+        >
+          <Satellite className="w-5 h-5" />
+        </button>
+        <button 
+          onClick={() => map?.setMapTypeId('roadmap')}
+          className="p-2 hover:bg-[#1a1a1a]/5 rounded-xl transition-all"
+          title="Map View"
+        >
+          <Layers className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function SatelliteAnalyzer() {
   const { user, signIn } = useAuth();
   const [detections, setDetections] = useState<Detection[]>([]);
   const [selectedDetection, setSelectedDetection] = useState<Detection | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState('');
-  
-  const [searchQuery, setSearchQuery] = useState('Nazca Lines');
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<NasaImage[]>([]);
-  const [selectedImage, setSelectedImage] = useState<NasaImage | null>(null);
 
   // Load discoveries from Firestore
   useEffect(() => {
@@ -119,71 +203,29 @@ export default function SatelliteAnalyzer() {
 
     return () => unsubscribe();
   }, [user]);
-
-  const searchNasaImages = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    setIsSearching(true);
-    try {
-      const response = await fetch(`https://images-api.nasa.gov/search?q=${encodeURIComponent(searchQuery)}&media_type=image`);
-      const data = await response.json();
-      
-      const items = data.collection.items.slice(0, 12).map((item: any) => {
-        const links = item.links || [];
-        const thumb = links.find((l: any) => l.rel === 'preview')?.href;
-        const small = links.find((l: any) => l.href?.includes('~small'))?.href;
-        const orig = links.find((l: any) => l.href?.includes('~orig'))?.href;
-        
-        // Try to get small or orig image, fallback to thumb
-        const image = small || orig || thumb;
-        
-        return {
-          nasa_id: item.data[0].nasa_id,
-          title: item.data[0].title,
-          description: item.data[0].description,
-          date_created: item.data[0].date_created,
-          thumb_url: thumb,
-          image_url: image
-        };
-      }).filter((item: NasaImage) => item.thumb_url);
-      
-      setSearchResults(items);
-      if (items.length > 0) {
-        setSelectedImage(items[0]);
-      } else {
-        setSelectedImage(null);
-      }
-    } catch (error) {
-      console.error('Error fetching NASA images:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Initial search
-  useEffect(() => {
-    searchNasaImages();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   
-  const handleAnalyze = async () => {
-    if (!selectedImage || !user) return;
+  const handleAnalyze = async (map: google.maps.Map | null) => {
+    if (!map || !user) return;
     
     setIsAnalyzing(true);
-    setAnalysisProgress('Fetching high-res imagery from NASA...');
+    setAnalysisProgress('Capturing satellite imagery...');
+    
+    const currentCenter = map.getCenter();
+    const currentZoom = map.getZoom() || 15;
+    
+    if (!currentCenter) return;
+    
+    const lat = currentCenter.lat();
+    const lng = currentCenter.lng();
     
     try {
-      // 1. Fetch the image and convert to base64
-      let response = await fetch(selectedImage.image_url);
-      let blob = await response.blob();
+      // 1. Fetch static map image
+      const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${currentZoom}&size=640x640&maptype=satellite&key=${API_KEY}`;
       
-      // If NASA returns XML (like AccessDenied for missing resolutions), fallback to thumbnail
-      if (blob.type.includes('xml') || blob.type === 'text/html') {
-        response = await fetch(selectedImage.thumb_url);
-        blob = await response.blob();
-      }
+      setAnalysisProgress('Processing imagery with Gemini AI...');
       
+      const response = await fetch(staticMapUrl);
+      const blob = await response.blob();
       const reader = new FileReader();
       
       const base64Promise = new Promise<string>((resolve) => {
@@ -194,19 +236,17 @@ export default function SatelliteAnalyzer() {
       const base64Data = await base64Promise;
       const base64Image = base64Data.split(',')[1];
       
-      setAnalysisProgress('Processing imagery with Gemini AI...');
-      
       // 2. Analyze with Gemini
       const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
       
-      const prompt = `Analyze this satellite/aerial image from NASA (Title: "${selectedImage.title}") for potential hidden archaeological sites, ancient cities, or structures. 
+      const prompt = `Analyze this satellite image (centered at lat: ${lat}, lng: ${lng}, zoom: ${currentZoom}) for potential hidden archaeological sites, ancient cities, or structures. 
       Look for crop marks (differences in vegetation), soil marks (differences in soil color), geometric patterns, or unusual terrain features that suggest human-made structures.
       
       Provide the results in a JSON array of objects with the following fields:
       - name: A descriptive name for the find.
-      - type: Type of structure (e.g., foundation, wall, mound, enclosure, geoglyph).
-      - lat: Estimated latitude (use 0 if unknown).
-      - lng: Estimated longitude (use 0 if unknown).
+      - type: Type of structure (e.g., foundation, wall, mound, enclosure).
+      - lat: Estimated latitude (calculate based on image center and zoom).
+      - lng: Estimated longitude (calculate based on image center and zoom).
       - accessibility: One of 'Easy', 'Moderate', 'Difficult'.
       - confidence: 0-1 score.
       - description: A brief explanation of why this is a potential site.
@@ -218,7 +258,7 @@ export default function SatelliteAnalyzer() {
           {
             parts: [
               { text: prompt },
-              { inlineData: { mimeType: blob.type || "image/jpeg", data: base64Image } }
+              { inlineData: { mimeType: base64Image.match(/^data:(image\/[a-zA-Z+]+);base64,/)?.[1] || "image/png", data: base64Image.split(',')[1] || base64Image } }
             ]
           }
         ],
@@ -247,7 +287,8 @@ export default function SatelliteAnalyzer() {
       const text = result.text;
       if (!text) throw new Error('No text returned from Gemini');
       
-      const newDetectionsData = JSON.parse(text);
+      const jsonText = extractJson(text);
+      const newDetectionsData = JSON.parse(jsonText);
       
       setAnalysisProgress('Saving discoveries to vault...');
       
@@ -258,7 +299,6 @@ export default function SatelliteAnalyzer() {
             ...d,
             userId: user.uid,
             timestamp: Timestamp.now(),
-            imageUrl: selectedImage.image_url,
             id: Math.random().toString(36).substr(2, 9) // Local ID for UI
           });
         } catch (e) {
@@ -276,107 +316,85 @@ export default function SatelliteAnalyzer() {
     }
   };
 
+  if (!hasValidKey) return <SplashScreen />;
   if (!user) return <AuthRequiredScreen onSignIn={signIn} />;
 
   return (
     <div className="h-[calc(100vh-12rem)] flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-serif text-3xl font-bold tracking-tight">NASA Satellite Archaeos</h2>
-          <p className="text-sm opacity-60">Detect hidden ancient structures using free NASA satellite imagery.</p>
+          <h2 className="font-serif text-3xl font-bold tracking-tight">Satellite Archaeos</h2>
+          <p className="text-sm opacity-60">Detect hidden ancient structures using multispectral satellite analysis.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-blue-500/10 text-blue-600 px-3 py-1.5 rounded-full text-xs font-bold border border-blue-500/20">
-            <Satellite className="w-4 h-4" />
-            NASA API Connected
+          <div className="flex items-center gap-2 bg-green-500/10 text-green-600 px-3 py-1.5 rounded-full text-xs font-bold border border-green-500/20">
+            <CheckCircle2 className="w-4 h-4" />
+            Live Analysis Active
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
-        {/* Main Area */}
-        <div className="lg:col-span-8 flex flex-col gap-4 min-h-0">
-          {/* Search Bar */}
-          <form onSubmit={searchNasaImages} className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-40" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search NASA archives (e.g., 'Giza', 'Nazca', 'Stonehenge')"
-                className="w-full pl-12 pr-4 py-3 bg-white border border-[#1a1a1a]/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1a1a1a]/20 transition-all font-medium"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={isSearching}
-              className="bg-[#1a1a1a] text-white px-6 py-3 rounded-2xl font-bold hover:bg-black transition-all disabled:opacity-50 flex items-center gap-2"
+        {/* Map Area */}
+        <div className="lg:col-span-8 relative rounded-3xl overflow-hidden border border-[#1a1a1a]/5 bg-[#f5f2ed] shadow-inner">
+          <APIProvider apiKey={API_KEY} version="weekly">
+            <Map
+              defaultCenter={{ lat: 31.1342, lng: 30.9413 }}
+              defaultZoom={15}
+              mapId="SATELLITE_ARCHAEOS_MAP"
+              mapTypeId="satellite"
+              {...({ internalUsageAttributionIds: ['gmp_mcp_codeassist_v1_aistudio'] } as any)}
+              style={{ width: '100%', height: '100%' }}
+              gestureHandling={'greedy'}
+              disableDefaultUI={true}
             >
-              {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
-            </button>
-          </form>
+              <MapContent 
+                onAnalyze={handleAnalyze} 
+              />
+              
+              {detections.map(d => (
+                <DetectionMarker 
+                  key={d.id} 
+                  detection={d} 
+                  onClick={setSelectedDetection} 
+                />
+              ))}
 
-          {/* Image Viewer */}
-          <div className="flex-1 relative rounded-3xl overflow-hidden border border-[#1a1a1a]/5 bg-[#1a1a1a] shadow-inner flex flex-col">
-            {selectedImage ? (
-              <>
-                <div className="flex-1 relative">
-                  <img 
-                    src={selectedImage.image_url} 
-                    alt={selectedImage.title}
-                    className="w-full h-full object-contain"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-                  
-                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                    <h3 className="font-serif text-2xl font-bold mb-2">{selectedImage.title}</h3>
-                    <p className="text-sm opacity-80 line-clamp-2 max-w-2xl">{selectedImage.description}</p>
-                    <div className="flex items-center gap-4 mt-4">
+              {selectedDetection && (
+                <InfoWindow
+                  position={{ lat: selectedDetection.lat, lng: selectedDetection.lng }}
+                  onCloseClick={() => setSelectedDetection(null)}
+                >
+                  <div className="p-2 max-w-xs">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-1.5 bg-yellow-400 rounded-lg">
+                        <Pickaxe className="w-4 h-4 text-[#1a1a1a]" />
+                      </div>
+                      <h3 className="font-bold text-sm">{selectedDetection.name}</h3>
+                    </div>
+                    <p className="text-xs opacity-70 mb-3">{selectedDetection.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                        selectedDetection.accessibility === 'Easy' ? 'bg-green-100 text-green-700' :
+                        selectedDetection.accessibility === 'Moderate' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {selectedDetection.accessibility} Access
+                      </span>
                       <button 
-                        onClick={handleAnalyze}
-                        disabled={isAnalyzing}
-                        className="bg-white text-[#1a1a1a] px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all flex items-center gap-2"
+                        onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedDetection?.lat},${selectedDetection?.lng}`, '_blank')}
+                        className="flex items-center gap-1 text-xs font-bold text-[#1a1a1a] hover:underline"
                       >
-                        <Scan className="w-5 h-5" />
-                        Analyze with AI
+                        <Navigation className="w-3 h-3" />
+                        Navigate
                       </button>
-                      <a 
-                        href={`https://images.nasa.gov/details-${selectedImage.nasa_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm opacity-60 hover:opacity-100 transition-opacity"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        View on NASA
-                      </a>
                     </div>
                   </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-white/40 p-8 text-center">
-                <ImageIcon className="w-16 h-16 mb-4 opacity-20" />
-                <p>Search for a location to view NASA satellite imagery.</p>
-              </div>
-            )}
+                </InfoWindow>
+              )}
+            </Map>
             <AnalysisOverlay isAnalyzing={isAnalyzing} progress={analysisProgress} />
-          </div>
-
-          {/* Thumbnails */}
-          <div className="h-24 flex gap-2 overflow-x-auto pb-2 shrink-0">
-            {searchResults.map((img) => (
-              <button
-                key={img.nasa_id}
-                onClick={() => setSelectedImage(img)}
-                className={`relative h-full aspect-video rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
-                  selectedImage?.nasa_id === img.nasa_id ? 'border-[#1a1a1a] scale-95' : 'border-transparent hover:border-[#1a1a1a]/20'
-                }`}
-              >
-                <img src={img.thumb_url} alt={img.title} className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
+          </APIProvider>
         </div>
 
         {/* Sidebar */}
@@ -390,7 +408,7 @@ export default function SatelliteAnalyzer() {
             {detections.length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-[#1a1a1a]/5 rounded-2xl">
                 <Compass className="w-8 h-8 opacity-10 mx-auto mb-3" />
-                <p className="text-xs opacity-40">No sites detected yet.<br/>Analyze an image to begin.</p>
+                <p className="text-xs opacity-40">No sites detected yet.<br/>Scan an area to begin.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -413,12 +431,10 @@ export default function SatelliteAnalyzer() {
                     </div>
                     <h4 className="font-bold text-sm mb-1">{d.name}</h4>
                     <div className="flex items-center gap-3 opacity-60">
-                      {d.lat !== 0 && d.lng !== 0 && (
-                        <div className="flex items-center gap-1 text-[10px]">
-                          <MapPin className="w-3 h-3" />
-                          {d.lat.toFixed(4)}, {d.lng.toFixed(4)}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1 text-[10px]">
+                        <MapPin className="w-3 h-3" />
+                        {d.lat.toFixed(4)}, {d.lng.toFixed(4)}
+                      </div>
                       <div className="flex items-center gap-1 text-[10px]">
                         {d.accessibility === 'Easy' ? <Route className="w-3 h-3" /> : 
                          d.accessibility === 'Moderate' ? <Trees className="w-3 h-3" /> : 
@@ -432,45 +448,36 @@ export default function SatelliteAnalyzer() {
             )}
           </div>
 
-          {selectedDetection && (
-            <div className="bg-[#1a1a1a] text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Pickaxe className="w-24 h-24" />
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 bg-yellow-400 rounded-xl">
-                    <Pickaxe className="w-5 h-5 text-[#1a1a1a]" />
-                  </div>
-                  <h3 className="font-serif text-xl font-bold">{selectedDetection.name}</h3>
-                </div>
-                <p className="text-sm opacity-80 mb-4">{selectedDetection.description}</p>
-                
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-widest opacity-50 mb-2">Features Detected</h4>
-                    <ul className="text-sm space-y-1">
-                      {selectedDetection.features.map((f, i) => (
-                        <li key={i} className="flex items-center gap-2">
-                          <div className="w-1 h-1 bg-yellow-400 rounded-full" />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  {selectedDetection.imageUrl && (
-                    <div>
-                      <h4 className="text-xs font-bold uppercase tracking-widest opacity-50 mb-2">Source Image</h4>
-                      <img src={selectedDetection.imageUrl} alt="Source" className="w-full h-24 object-cover rounded-xl border border-white/10" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="bg-[#1a1a1a] text-white rounded-3xl p-6 shadow-xl">
+            <h3 className="font-serif text-lg font-bold mb-3 flex items-center gap-2">
+              <Info className="w-5 h-5 text-yellow-400" />
+              Analysis Guide
+            </h3>
+            <ul className="text-xs space-y-3 opacity-80">
+              <li className="flex gap-2">
+                <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1 shrink-0" />
+                <span><strong>Crop Marks:</strong> Look for patterns in vegetation that reveal buried walls or ditches.</span>
+              </li>
+              <li className="flex gap-2">
+                <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1 shrink-0" />
+                <span><strong>Soil Marks:</strong> Color variations in ploughed fields often indicate ancient foundations.</span>
+              </li>
+              <li className="flex gap-2">
+                <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1 shrink-0" />
+                <span><strong>Shadow Marks:</strong> Low-sun angle imagery highlights subtle mounds and depressions.</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+function MapContent({ onAnalyze }: { 
+  onAnalyze: (map: google.maps.Map | null) => void;
+}) {
+  const map = useMap();
+  return <MapControls onAnalyze={() => onAnalyze(map)} />;
+}
+

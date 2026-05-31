@@ -1,5 +1,5 @@
 {
-  "name": "World Archaeos & App Blueprint Generator",
-  "description": "A comprehensive digital suite featuring a Virtual Archaeologist AI Assistant, Satellite Image Analysis for hidden structures, and a powerful App Blueprint Generator that creates detailed architectural, technical, and market strategies for any application idea.",
+  "name": "WorldArchaeos",
+  "description": "By Royal Bulls Advisory Private Limited. Founder and CEO Krishna Vishwakarma. Director Vandna Thakur. A comprehensive digital suite featuring a Virtual Archaeologist AI Assistant, Satellite Image Analysis for hidden structures, Ancient Script Translation, and the 'Soul Journey Book' generator—an AI tool that creates sellable, multi-chapter manuscripts based on Kundli and astral coordinates.",
   "requestFramePermissions": ["geolocation", "camera"]
 }

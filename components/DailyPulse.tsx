@@ -25,7 +25,6 @@ import {
   Video
 } from 'lucide-react';
 import { getGeminiClient, withRetry, Type } from '@/lib/gemini';
-import { getBase64Image } from '@/lib/utils';
 import { Modality } from "@google/genai";
 import Markdown from 'react-markdown';
 import Image from 'next/image';
@@ -125,25 +124,25 @@ export default function DailyPulse({ globalLanguage, profile, logActivity }: { g
       // 1. Generate Text Content
       const textResponse = await withRetry(() => ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Generate a ${duration}-second "Thought of the Day" for World Archaeos, established as a premium "Historical Intelligence" brand.
+        contents: `Generate a ${duration}-second "Thought of the Day" for Archaeos Publisher, established as a premium "Historical Intelligence" brand.
         ${topicContext}
         ${modeContext}
         
-        Perspective: World Archaeos (Ancient Wisdom + Quantum Science). 
+        Perspective: Archaeos Publisher (Ancient Wisdom + Quantum Science). 
         Tone: Authoritative, Suspenseful, Premium.
         
         Requirements:
         1. **Title**: A provocative 3-4 word title.
         2. **Thought**: A powerful ${duration}-second speech (approx ${duration * 3} words). 
            - START with a question that peaks curiosity.
-           - END with the signature CTA: "Ancient secrets are the blueprints for our future. Join World Archaeos to decode the timeline."
+           - END with the signature CTA: "Ancient secrets are the blueprints for our future. Join Archaeos Publisher to decode the timeline."
         3. **What is Forgotten**: A single sentence about a lost truth humanity has forgotten.
         4. **Hidden Truth**: A single sentence about something happening right now that people can't see or hear.
         5. **Viral Hook**: A 3-second psychological hook to start a YouTube Short (must be high-retention).
         6. **SEO Hashtags**: A list of 10 highly relevant and trending hashtags for YouTube/Instagram.
         7. **Viral Tips**: 3 quick tips on how to edit or present this specific content to make it go viral (mention using suspenseful background music).
         8. **Visual Prompt**: A detailed prompt for an AI image generator (High-definition animated style, cinematic, mystical, high-contrast). 
-           CRITICAL: The prompt MUST include instructions to have the branding "WORLD ARCHAEOS" written in a bold, glowing, futuristic font at the bottom or center of the image. The image should feel like a high-end brand asset.
+           CRITICAL: The prompt MUST include instructions to have the branding "ARCHAEOS PUBLISHER" written in a bold, glowing, futuristic font at the bottom or center of the image. The image should feel like a high-end brand asset.
 
         Language: ${globalLanguage}.
         Format as JSON.`,
@@ -163,7 +162,7 @@ export default function DailyPulse({ globalLanguage, profile, logActivity }: { g
             },
             required: ["title", "thought", "whatIsForgotten", "hiddenTruth", "viralHook", "hashtags", "viralTips", "visualPrompt"]
           },
-          systemInstruction: "You are the Voice of World Archaeos, a premium Historical Intelligence brand. You are ancient yet futuristic. Your tone is authoritative, suspenseful, and awakening. You speak to the soul of humanity, bridging the gap between ancient Vedic knowledge and modern Quantum Physics. Every piece of content must feel like a high-end intelligence report from the timeline of history."
+          systemInstruction: "You are the Voice of Archaeos Publisher, a premium Historical Intelligence brand. You are ancient yet futuristic. Your tone is authoritative, suspenseful, and awakening. You speak to the soul of humanity, bridging the gap between ancient Vedic knowledge and modern Quantum Physics. Every piece of content must feel like a high-end intelligence report from the timeline of history."
         }
       }));
 
@@ -180,24 +179,21 @@ export default function DailyPulse({ globalLanguage, profile, logActivity }: { g
       // 2. Generate Visual
       let imageUrl = null;
       try {
-        const basePrompt = `Create a cinematic, mystical image based on this prompt: ${data.visualPrompt}. The image should feel like a high-end brand asset for World Archaeos.`;
+        const basePrompt = `Create a cinematic, mystical image based on this prompt: ${data.visualPrompt}. The image should feel like a high-end brand asset for Archaeos Publisher.`;
         const imageParts: any[] = [];
         
         if (profile?.profilePhoto) {
-          const base64Data = await getBase64Image(profile.profilePhoto);
-          if (base64Data) {
-            imageParts.push({
-              text: `${basePrompt} The main character in the image MUST look exactly like the person in the provided reference photo, but dressed and styled according to the theme of the prompt. Transform the person into the hero of this scene.`
-            });
-            imageParts.push({
-              inlineData: {
-                mimeType: base64Data.mimeType,
-                data: base64Data.data
-              }
-            });
-          } else {
-            imageParts.push({ text: basePrompt });
-          }
+          const mimeMatch = profile.profilePhoto.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+          const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+          imageParts.push({
+            text: `${basePrompt} The main character in the image MUST look exactly like the person in the provided reference photo, but dressed and styled according to the theme of the prompt. Transform the person into the hero of this scene.`
+          });
+          imageParts.push({
+            inlineData: {
+              mimeType: mimeType,
+              data: profile.profilePhoto.split(',')[1] || profile.profilePhoto
+            }
+          });
         } else {
           imageParts.push({ text: basePrompt });
         }
@@ -363,10 +359,10 @@ export default function DailyPulse({ globalLanguage, profile, logActivity }: { g
         img.onerror = reject;
       });
 
-      // 2. Setup Canvas (2K Resolution for better quality)
+      // 2. Setup Canvas (Standard 1080p Vertical for YouTube Shorts)
       const canvas = document.createElement('canvas');
-      canvas.width = 1440;
-      canvas.height = 2560;
+      canvas.width = 1080;
+      canvas.height = 1920;
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("No canvas context");
 
@@ -390,13 +386,14 @@ export default function DailyPulse({ globalLanguage, profile, logActivity }: { g
         ...audioStream.getAudioTracks()
       ]);
 
-      let mimeType = 'video/webm;codecs=vp9,opus';
+      // Priority: MP4 (Safari), then WebM VP8 (high compatibility)
+      let mimeType = 'video/mp4';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         mimeType = 'video/webm;codecs=vp8,opus';
         if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'video/webm';
+          mimeType = 'video/webm;codecs=vp9,opus';
           if (!MediaRecorder.isTypeSupported(mimeType)) {
-             mimeType = 'video/mp4';
+             mimeType = 'video/webm';
           }
         }
       }
@@ -467,7 +464,7 @@ export default function DailyPulse({ globalLanguage, profile, logActivity }: { g
 
         ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.font = '40px sans-serif';
-        ctx.fillText("WORLD ARCHAEOS", canvas.width / 2, canvas.height - 150);
+        ctx.fillText("WORLDARCHAEOS", canvas.width / 2, canvas.height - 150);
 
         animationId = requestAnimationFrame(drawFrame);
       };
@@ -499,7 +496,7 @@ export default function DailyPulse({ globalLanguage, profile, logActivity }: { g
 
   const copyText = () => {
     if (!insight) return;
-    const textToCopy = `World Archaeos Daily Pulse: ${insight.title}\n\n"${insight.thought}"\n\nForgotten Truth: ${insight.whatIsForgotten}\nHidden Reality: ${insight.hiddenTruth}`;
+    const textToCopy = `Archaeos Publisher Daily Pulse: ${insight.title}\n\n"${insight.thought}"\n\nForgotten Truth: ${insight.whatIsForgotten}\nHidden Reality: ${insight.hiddenTruth}`;
     navigator.clipboard.writeText(textToCopy);
     setCopiedText(true);
     setTimeout(() => setCopiedText(false), 2000);
@@ -521,7 +518,7 @@ export default function DailyPulse({ globalLanguage, profile, logActivity }: { g
 
   const shareContent = async () => {
     if (!insight) return;
-    const textToShare = `World Archaeos Daily Pulse: ${insight.title}\n\n"${insight.thought}"`;
+    const textToShare = `Archaeos Publisher Daily Pulse: ${insight.title}\n\n"${insight.thought}"`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -546,7 +543,7 @@ export default function DailyPulse({ globalLanguage, profile, logActivity }: { g
         </div>
         <h2 className="font-serif text-5xl">{duration}-Second Awakening</h2>
         <p className="text-[#1a1a1a]/60 max-w-2xl mx-auto text-lg italic">
-          &quot;What is the world forgetting? What is hidden from your eyes? Discover the daily pulse of World Archaeos.&quot;
+          &quot;What is the world forgetting? What is hidden from your eyes? Discover the daily pulse of Archaeos Publisher.&quot;
         </p>
       </div>
 
@@ -845,7 +842,7 @@ export default function DailyPulse({ globalLanguage, profile, logActivity }: { g
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">World Archaeos Pulse</span>
+                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">Archaeos Publisher Pulse</span>
                   </div>
                   {insight?.imageUrl && (
                     <button 

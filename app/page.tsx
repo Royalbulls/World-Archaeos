@@ -41,8 +41,7 @@ import {
   Library,
   LayoutTemplate,
   Book,
-  Clapperboard,
-  Factory
+  Target
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const ArchaeosExplorer = dynamic(() => import('@/components/ArchaeosExplorer'), { ssr: false });
@@ -65,6 +64,7 @@ import BioMachineAnalyzer from '@/components/BioMachineAnalyzer';
 import KilvishBabaApp from '@/components/KilvishBabaApp';
 import DestinyNavigator from '@/components/DestinyNavigator';
 import ArchaeosPublisher from '@/components/ArchaeosPublisher';
+import ArchaeosFinder from '@/components/ArchaeosFinder';
 import EvolutionCore from '@/components/EvolutionCore';
 import AIKathaVachak from '@/components/AIKathaVachak';
 import DailyPulse from '@/components/DailyPulse';
@@ -86,10 +86,6 @@ import KundliGenerator from '@/components/KundliGenerator';
 import PitchDeck from '@/components/PitchDeck';
 import VedicLibrary from '@/components/VedicLibrary';
 import SatelliteAnalyzer from '@/components/SatelliteAnalyzer';
-import AISceneScriptGenerator from '@/components/AISceneScriptGenerator';
-import ArchaeosContentGenerator from '@/components/ArchaeosContentGenerator';
-import ProductInnovator from '@/components/ProductInnovator';
-import Artifact3DViewer from '@/components/Artifact3DViewer';
 
 import VirtualTool, { VirtualToolConfig } from '@/components/VirtualTool';
 import * as LucideIcons from 'lucide-react';
@@ -127,6 +123,7 @@ const TABS = [
   { id: 'settings', label: 'Settings', icon: SettingsIcon, component: Settings },
   { id: 'evolution', label: 'Evolution Core', icon: Dna, component: EvolutionCore },
   { id: 'publisher', label: 'Publisher Hub', icon: PenTool, component: ArchaeosPublisher },
+  { id: 'finder', label: 'Archaeos Finder', icon: Target, component: ArchaeosFinder },
   { id: 'destiny', label: 'Destiny Navigator', icon: Sparkles, component: DestinyNavigator },
   { id: 'feed', label: 'Discoveries', icon: Newspaper, component: DiscoveriesFeed },
   { id: 'oracle', label: 'Mystic Oracle', icon: Sparkles, component: MysticOracle },
@@ -147,10 +144,6 @@ const TABS = [
   { id: 'translator', label: 'Ancient Script', icon: Languages, component: LanguageTranslator },
   { id: 'artifacts', label: 'The Vault', icon: Box, component: ArtifactDiscovery },
   { id: 'library', label: 'Vedic Library', icon: Library, component: VedicLibrary },
-  { id: 'scene-gen', label: 'AI Scene Architect', icon: Clapperboard, component: AISceneScriptGenerator },
-  { id: 'content-gen', label: 'Archaeos Content Architect', icon: PenTool, component: ArchaeosContentGenerator },
-  { id: 'product-innovator', label: 'Product Innovator', icon: Factory, component: ProductInnovator },
-  { id: '3d-viewer', label: '3D Artifact Vault', icon: Box, component: Artifact3DViewer },
 ];
 
 export default function Dashboard() {
@@ -272,8 +265,8 @@ export default function Dashboard() {
   const categories = useMemo(() => {
     const rawCategories = [
       { id: 'personal', label: 'Personal & Daily Use', tabs: ['home', 'daily-pulse', 'trust', 'profile', 'namkaran', 'kundli', 'katha', 'reconstructor', 'sanskar', 'najar-nivaran', 'oracle', 'sound', 'vastu'] },
-      { id: 'business', label: 'Legacy & Earning', tabs: ['blueprint', 'dharma-ceo', 'influencer', 'pro-services', 'publisher', 'legacy', 'destiny', 'kilvish', 'feed', 'scene-gen', 'product-innovator'] },
-      { id: 'research', label: 'Ancient Research', tabs: ['library', 'geology', 'botany', 'analyzer', 'explorer', 'translator', 'resources', 'mysteries', 'artifacts', 'satellite', 'content-gen', '3d-viewer'] },
+      { id: 'business', label: 'Legacy & Earning', tabs: ['blueprint', 'dharma-ceo', 'influencer', 'pro-services', 'publisher', 'legacy', 'destiny', 'kilvish', 'feed'] },
+      { id: 'research', label: 'Ancient Research', tabs: ['library', 'geology', 'botany', 'analyzer', 'explorer', 'translator', 'resources', 'mysteries', 'artifacts', 'satellite', 'finder'] },
       { id: 'advanced', label: 'Vedic Innovation', tabs: ['council', 'agents', 'tech', 'bio', 'akashic', 'temporal', 'evolution'] },
       ...((customTools && customTools.length > 0) ? [{ id: 'evolved', label: 'Evolved Tools', tabs: customTools.map(t => t.id).filter(Boolean) as string[] }] : []),
       { id: 'system', label: 'System', tabs: ['settings'] }
@@ -317,11 +310,11 @@ export default function Dashboard() {
   };
 
   const activeCustomTool = customTools.find(t => t.id === activeTab);
-  const ActiveComponent: any = activeCustomTool 
+  const ActiveComponent = (activeCustomTool 
     ? () => <VirtualTool config={activeCustomTool} globalLanguage={globalLanguage} />
     : (activeTab === 'home' || !TABS.find(t => t.id === activeTab))
       ? () => <HomeView profile={userProfile} setActiveTab={setActiveTab} categories={categories} allTabs={allTabs} />
-      : TABS.find(t => t.id === activeTab)?.component || (() => <HomeView profile={userProfile} setActiveTab={setActiveTab} categories={categories} allTabs={allTabs} />);
+      : TABS.find(t => t.id === activeTab)?.component || (() => <HomeView profile={userProfile} setActiveTab={setActiveTab} categories={categories} allTabs={allTabs} />)) as React.ComponentType<any>;
 
   const languages = [
     { id: 'hi-sa', label: 'हिन्दी + संस्कृत', short: 'HI-SA' },
@@ -347,7 +340,7 @@ export default function Dashboard() {
                 <Compass className="w-6 h-6" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="font-serif text-xl tracking-tight text-[#1a1a1a]">World Archaeos</h1>
+                <h1 className="font-serif text-xl tracking-tight text-[#1a1a1a]">WorldArchaeos</h1>
                 <p className="text-[8px] font-bold uppercase tracking-[0.3em] opacity-40 -mt-1">Engine v4.0</p>
               </div>
             </div>
@@ -462,8 +455,6 @@ export default function Dashboard() {
                   onUpdate={handleProfileUpdate}
                   setActiveTab={setActiveTab}
                   onEvolve={handleEvolve}
-                  categories={categories}
-                  allTabs={allTabs}
                 />
               </motion.div>
             </AnimatePresence>
@@ -553,7 +544,7 @@ export default function Dashboard() {
                 <Compass className="w-8 h-8" />
               </div>
               <div>
-                <h2 className="font-serif text-2xl tracking-tight">World Archaeos</h2>
+                <h2 className="font-serif text-2xl tracking-tight">WorldArchaeos</h2>
                 <p className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">Global Heritage Engine</p>
               </div>
             </div>
@@ -602,7 +593,7 @@ export default function Dashboard() {
         
         <div className="max-w-[1600px] mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest">
-            © 2026 World Archaeos Trust. All Rights Reserved.
+            © 2026 WorldArchaeos. All Rights Reserved.
           </p>
           <div className="flex gap-8">
             <button className="text-[10px] font-bold opacity-30 uppercase tracking-widest hover:opacity-100 transition-opacity">Privacy Policy</button>

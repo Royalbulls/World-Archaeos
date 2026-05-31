@@ -70,7 +70,7 @@ const SLIDES = [
     title: 'The 4 Pillars',
     subtitle: 'Product Deep Dive',
     pillars: [
-      { title: 'Influencer Studio', desc: 'Automated content for YouTube/Camera.' },
+      { title: 'Influencer Studio', desc: 'Automated content for YouTube/Instagram.' },
       { title: 'Vedic Suite', desc: 'Kundli Generator & Vastu Architect.' },
       { title: 'Akashic Explorer', desc: 'AI-driven historical research tool.' },
       { title: 'Daily Pulse', desc: 'Hyper-personalized spiritual insights.' }

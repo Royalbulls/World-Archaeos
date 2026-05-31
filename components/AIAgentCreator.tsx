@@ -21,7 +21,6 @@ import {
   Search
 } from 'lucide-react';
 import { getGeminiModel, withRetry } from '@/lib/gemini';
-import { getBase64Image } from '@/lib/utils';
 import Image from 'next/image';
 import Markdown from 'react-markdown';
 import { motion, AnimatePresence } from 'motion/react';
@@ -149,15 +148,14 @@ export default function AIAgentCreator({ globalLanguage, profile }: { globalLang
       const imageParts: any[] = [{ text: `A mystical, ethereal AI avatar portrait representing a personality that is ${data.traits.join(', ')}. Cosmic background, high-tech meets ancient mysticism, 4k resolution. The avatar MUST look exactly like the person in the provided reference photo, but transformed into a mystical AI entity.` }];
       
       if (profile?.profilePhoto) {
-        const base64Data = await getBase64Image(profile.profilePhoto);
-        if (base64Data) {
-          imageParts.push({
-            inlineData: {
-              mimeType: base64Data.mimeType,
-              data: base64Data.data
-            }
-          });
-        }
+        const mimeMatch = profile.profilePhoto.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+        const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+        imageParts.push({
+          inlineData: {
+            mimeType: mimeType,
+            data: profile.profilePhoto.split(',')[1] || profile.profilePhoto
+          }
+        });
       }
 
       const imgResponse = await withRetry(() => imageAi.models.generateContent({

@@ -32,10 +32,12 @@ export default function ArtifactAnalyzer({ addArtifact }: { addArtifact?: (name:
       
       let contents: any;
       if (image) {
-        const base64Data = image.split(',')[1];
+        const mimeMatch = image.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+        const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+        const base64Data = image.split(',')[1] || image;
         contents = {
           parts: [
-            { inlineData: { data: base64Data, mimeType: "image/png" } },
+            { inlineData: { data: base64Data, mimeType: mimeType } },
             { text: `Analyze this artifact. ${description ? `Context: ${description}` : "Identify its origin, era, and significance. Look for specific symbols, animals, or scripts (like Indus Valley seals or Mesopotamian tokens)."}` }
           ]
         };
